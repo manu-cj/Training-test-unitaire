@@ -3,21 +3,19 @@ package com.testTraining.test_training.services;
 import com.testTraining.test_training.exception.UserNotFoundException;
 import com.testTraining.test_training.model.User;
 import com.testTraining.test_training.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class UserService {
 
     private final UserRepository userRepository;
     private final EmailService emailService;
 
-    public UserService(UserRepository userRepository, EmailService emailService) {
-        this.userRepository = userRepository;
-        this.emailService = emailService;
-    }
 
     // 1️⃣ Récupération d'un user par ID
     public User getUserById(UUID id) {

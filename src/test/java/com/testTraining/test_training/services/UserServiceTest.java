@@ -116,8 +116,6 @@ public class UserServiceTest {
         verify(userRepository).save(existing);
     }
 
-
-
     @Test
     void shouldDeleteUser() {
         UUID id = UUID.randomUUID();
