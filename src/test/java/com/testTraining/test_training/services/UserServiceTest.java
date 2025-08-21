@@ -1,7 +1,9 @@
 package com.testTraining.test_training.services;
 
+import com.testTraining.test_training.exception.UserNotFoundException;
 import com.testTraining.test_training.model.User;
 import com.testTraining.test_training.repository.UserRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -10,31 +12,29 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class UserServiceTest {
-    @Mock
-    UserRepository userRepository;
 
-    @Mock
-    EmailService emailService;
+    private UserRepository userRepository;
+    private EmailService emailService;
+    private UserService userService;
 
-    @InjectMocks
-    UserService userService;
 
-    @Captor
-    ArgumentCaptor<User> userCaptor;
-
-    private User mockUser;
+    @BeforeEach
+    void setUp() {
+        userRepository = mock(UserRepository.class);
+        emailService = mock(EmailService.class);
+        userService = new UserService(userRepository, emailService);
+    }
 
     @Test
     void shouldReturnIfUserExist() {
@@ -56,23 +56,25 @@ public class UserServiceTest {
     }
 
     @Test
-    void shouldIfUserListExist() {
+    void shouldReturnIfUserListExist() {
         UUID id = UUID.randomUUID();
         User p1 = new User(id, "Manu", "manu@gmail.com");
 
         UUID id2 = UUID.randomUUID();
         User p2 = new User(id2, "Julie", "julie@gmail.com");
 
-        when(userRepository.findAll()).thenReturn(List.of(p1, p2));
+        List<User> userList = new ArrayList<>(List.of(p1, p2));
 
-        List<User> users = userService.getAllUsers();
+        when(userRepository.findAll()).thenReturn(userList);
 
-        assertEquals(2, users.size());
-        assertEquals(p1, users.get(0));
-        assertEquals(p2, users.get(1));
-        assertEquals("Manu", users.get(0).getName());
-        assertEquals("Julie", users.get(1).getName());
-        assertNotEquals("Muna", users.get(1).getName());
+        List<User> expected = userService.getAllUsers();
+
+        assertEquals(2, expected.size());
+        assertEquals(p1, expected.get(0));
+        assertEquals(p2, expected.get(1));
+        assertEquals("Manu", expected.get(0).getName());
+        assertEquals("Julie", expected.get(1).getName());
+        assertNotEquals("Muna", expected.get(1).getName());
         verify(userRepository).findAll();
     }
 
@@ -83,14 +85,14 @@ public class UserServiceTest {
         String email = "manu@gmail.com";
         User userToSave = new User(name, email);
 
-        when(userRepository.save(userCaptor.capture())).thenReturn(userToSave);
+        when(userRepository.save(any(User.class))).thenReturn(userToSave);
 
         User result = userService.createUser(name, email);
 
         assertEquals(userToSave, result);
-        assertEquals(name, userCaptor.getValue().getName());
-        assertEquals(email, userCaptor.getValue().getEmail());
-        verify(userRepository).save(userCaptor.getValue());
+        assertEquals(name, result.getName());
+        assertEquals(email, result.getEmail());
+        verify(userRepository).save(result);
         verify(emailService).sendWelcomeEmail(userToSave);
     }
 
@@ -102,11 +104,9 @@ public class UserServiceTest {
 
         // verify if user exist
         when(userRepository.findById(id)).thenReturn(Optional.of(existing));
-
-        // Update user
-        existing.setName(newName);
         when(userRepository.save(existing)).thenReturn(existing);
 
+        // Update user
         User result = userService.updateUserName(id, newName);
 
         assertEquals(newName, result.getName());
@@ -114,6 +114,20 @@ public class UserServiceTest {
         assertEquals("manu@gmail.com", result.getEmail());
         verify(userRepository).findById(id);
         verify(userRepository).save(existing);
+    }
+
+    @Test
+    void shouldThrowExceptionWhenUpdatingNonExistingUser() {
+        UUID id = UUID.randomUUID();
+        when(userRepository.findById(id)).thenReturn(Optional.empty());
+
+        Exception exception = assertThrows(UserNotFoundException.class, () -> {
+            userService.updateUserName(id, "NewName");
+        });
+
+        assertEquals("User not found", exception.getMessage());
+        verify(userRepository).findById(id);
+        verify(userRepository, never()).save(any());
     }
 
     @Test
