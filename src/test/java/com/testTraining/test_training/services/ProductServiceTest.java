@@ -199,16 +199,70 @@ class ProductServiceTest {
         UUID id = UUID.randomUUID();
         Product product = new Product("carotte", 3.19, 300);
         product.setId(id);
-        int amount = 100;
+        int amount = 300;
 
         when(productRepository.findById(id)).thenReturn(Optional.of(product));
         when(productRepository.save(product)).thenReturn(product);
 
         Product result = productService.decreaseStock(id, amount);
 
-        assertEquals(200, result.getQuantity());
+        assertEquals(0, result.getQuantity());
+        assertFalse(result.isInStock());
         verify(productRepository).findById(id);
         verify(productRepository).save(product);
+    }
+
+    @Test
+    void shouldThrowException_whenDecreaseQuantityUnderZero() {
+        UUID id = UUID.randomUUID();
+        Product product = new Product("carotte", 3.19, 300);
+        product.setId(id);
+        int amount = 400;
+
+        when(productRepository.findById(id)).thenReturn(Optional.of(product));
+
+        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
+            productService.decreaseStock(id, amount);
+        });
+
+        assertEquals("Insufficient stock", exception.getMessage());
+        verify(productRepository).findById(id);
+        verify(productRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldIncreaseQuantity() {
+        UUID id = UUID.randomUUID();
+        Product product = new Product("carotte", 3.19, 300);
+        product.setId(id);
+        int amount = 100;
+
+        when(productRepository.findById(id)).thenReturn(Optional.of(product));
+        when(productRepository.save(product)).thenReturn(product);
+
+        Product result = productService.increaseStock(id, amount);
+
+        assertEquals(400, result.getQuantity());
+        verify(productRepository).findById(id);
+        verify(productRepository).save(product);
+    }
+
+    @Test
+    void shouldThrowException_whenIncreaseQuantityOverNineThousand() {
+        UUID id = UUID.randomUUID();
+        Product product = new Product("carotte", 3.19, 300);
+        product.setId(id);
+        int amount = 8800;
+
+        when(productRepository.findById(id)).thenReturn(Optional.of(product));
+
+        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
+            productService.increaseStock(id, amount);
+        });
+
+        assertEquals("Quantity it's over 9000", exception.getMessage());
+        verify(productRepository).findById(id);
+        verify(productRepository, never()).save(any());
     }
 
 }

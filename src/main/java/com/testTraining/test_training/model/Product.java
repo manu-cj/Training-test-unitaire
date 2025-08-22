@@ -35,9 +35,6 @@ public class Product {
         this.quantity = quantity;
     }
 
-    public void inStock() {
-        this.inStock = this.quantity != 0;
-    }
 
     public void rechargeStock(int amount) {
         final int MAX_STOCK = 9000;
@@ -45,7 +42,7 @@ public class Product {
             throw new IllegalArgumentException("Amount must be positive");
         }
         if (this.quantity + amount > MAX_STOCK) {
-            this.quantity = MAX_STOCK;
+            throw new IllegalArgumentException("Quantity it's over 9000");
         } else {
             this.quantity += amount;
         }
@@ -53,12 +50,11 @@ public class Product {
     }
 
     public void decreaseStock(int amount) {
-        if (inStock) {
-            int newQuantity = this.quantity - amount;
-            setQuantity(newQuantity);
-        } else {
+        if (this.quantity < amount) {
             throw new IllegalArgumentException("Insufficient stock");
         }
+        int newQuantity = this.quantity - amount;
+        setQuantity(newQuantity);
     }
 
 

@@ -64,6 +64,19 @@ public class ProductService {
                 .orElseThrow(() -> new EntityNotFoundException("Product not found"));
 
         product.decreaseStock(amount);
+
+        if (product.getQuantity() == 0) {
+            product.setInStock(false);
+        }
+
+        return productRepository.save(product);
+    }
+
+    public Product increaseStock(UUID id, int amount) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Product not found"));
+
+        product.rechargeStock(amount);
         return productRepository.save(product);
     }
 
